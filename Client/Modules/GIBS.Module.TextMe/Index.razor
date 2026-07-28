@@ -1,0 +1,79 @@
+@using GIBS.Module.TextMe.Services
+@using GIBS.Module.TextMe.Models
+
+@namespace GIBS.Module.TextMe
+@inherits ModuleBase
+@inject ITextMeService ClientTextMeService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<Index> Localizer
+
+@if (_TextMes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <ActionLink Action="Add" Security="SecurityAccessLevel.Edit" Text="Add TextMe" ResourceKey="Add" />
+    <br />
+    <br />
+    @if (@_TextMes.Count != 0)
+    {
+        <Pager Items="@_TextMes">
+            <Header>
+                <th style="width: 1px;">&nbsp;</th>
+                <th style="width: 1px;">&nbsp;</th>
+                <th>@Localizer["Name"]</th>
+            </Header>
+            <Row>
+                <td><ActionLink Action="Edit" Parameters="@($"id=" + context.TextMeId.ToString())" ResourceKey="Edit"  /></td>
+                <td><ActionDialog Header="Delete TextMe" Message="Are You Sure You Wish To Delete This TextMe?" Action="Delete" Security="SecurityAccessLevel.Edit" Class="btn btn-danger" OnClick="@(async () => await Delete(context))" ResourceKey="Delete"  Id="@context.TextMeId.ToString()" /></td>
+                <td>@context.Name</td>
+            </Row>
+        </Pager>
+    }
+    else
+    {
+        <p>@Localizer["Message.DisplayNone"]</p>
+    }
+}
+
+@code {
+    public override string RenderMode => RenderModes.Static;
+
+    public override List<Resource> Resources => new List<Resource>()
+    {
+        new Stylesheet("_content/GIBS.Module.TextMe/Module.css"),
+        new Script("_content/GIBS.Module.TextMe/Module.js")
+    };
+
+    List<TextMe> _TextMes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _TextMes = await ClientTextMeService.GetTextMesAsync(ModuleState.ModuleId);
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading TextMe {Error}", ex.Message);
+            AddModuleMessage(Localizer["Message.LoadError"], MessageType.Error);
+        }
+    }
+
+    private async Task Delete(TextMe TextMe)
+    {
+        try
+        {
+            await ClientTextMeService.DeleteTextMeAsync(TextMe.TextMeId, ModuleState.ModuleId);
+            await logger.LogInformation("TextMe Deleted {TextMe}", TextMe);
+            _TextMes = await ClientTextMeService.GetTextMesAsync(ModuleState.ModuleId);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Deleting TextMe {TextMe} {Error}", TextMe, ex.Message);
+            AddModuleMessage(Localizer["Message.DeleteError"], MessageType.Error);
+        }
+    }
+}
