@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Version>1.0.0</Version>
-    <Authors>GIBS</Authors>
+    <Version>1.0.2</Version>
+    <Authors>Joseph M Aucoin</Authors>
     <Company>GIBS</Company>
     <Description>Twilio TextMe Module for Oqtane</Description>
     <Product>GIBS.Module.TextMe</Product>
@@ -26,6 +26,10 @@
   <ItemGroup>
     <Reference Include="Oqtane.Client"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net10.0\Oqtane.Client.dll</HintPath></Reference>
     <Reference Include="Oqtane.Shared"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net10.0\Oqtane.Shared.dll</HintPath></Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
   </ItemGroup>
 
   <PropertyGroup>

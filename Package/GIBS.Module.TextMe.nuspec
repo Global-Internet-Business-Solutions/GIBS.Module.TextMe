@@ -2,8 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>$projectname$</id>
-        <version>1.0.0</version>
-        <authors>GIBS</authors>
+        <version>1.0.2</version>
+        <authors>Joseph M Aucoin</authors>
         <owners>GIBS</owners>
         <title>TextMe</title>
         <description>Twilio TextMe Module for Oqtane</description>
@@ -25,6 +25,11 @@
         <file src="..\Client\bin\Release\$targetframework$\$ProjectName$.Client.Oqtane.pdb" target="lib\$targetframework$" />
         <file src="..\Server\bin\Release\$targetframework$\$ProjectName$.Server.Oqtane.dll" target="lib\$targetframework$" />
         <file src="..\Server\bin\Release\$targetframework$\$ProjectName$.Server.Oqtane.pdb" target="lib\$targetframework$" />
+        <file src="..\Server\bin\Release\$targetframework$\Newtonsoft.Json.dll" target="lib\$targetframework$" />
+        <file src="..\Server\bin\Release\$targetframework$\Twilio.dll" target="lib\$targetframework$" />
+        <file src="..\Server\bin\Release\$targetframework$\Twilio.AspNet.Common.dll" target="lib\$targetframework$" />
+        <file src="..\Server\bin\Release\$targetframework$\Twilio.AspNet.Core.dll" target="lib\$targetframework$" />
+        <file src="..\Server\bin\Release\$targetframework$\BouncyCastle.Cryptography.dll" target="lib\$targetframework$" />
         <file src="..\Shared\bin\Release\$targetframework$\$ProjectName$.Shared.Oqtane.dll" target="lib\$targetframework$" />
         <file src="..\Shared\bin\Release\$targetframework$\$ProjectName$.Shared.Oqtane.pdb" target="lib\$targetframework$" />
         <file src="..\Server\obj\Release\$targetframework$\staticwebassets\msbuild.$ProjectName$.Microsoft.AspNetCore.StaticWebAssetEndpoints.props" target="build\Microsoft.AspNetCore.StaticWebAssetEndpoints.props" />

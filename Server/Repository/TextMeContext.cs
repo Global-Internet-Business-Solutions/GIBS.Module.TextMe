@@ -9,7 +9,8 @@ namespace GIBS.Module.TextMe.Repository
 {
     public class TextMeContext : DBContextBase, ITransientService, IMultiDatabase
     {
-        public virtual DbSet<Models.TextMe> TextMe { get; set; }
+        public virtual DbSet<Models.TextMessage> Messages { get; set; }
+        public virtual DbSet<Models.TextMedia> Media { get; set; }
 
         public TextMeContext(IDBContextDependencies DBContextDependencies) : base(DBContextDependencies)
         {
@@ -20,7 +21,14 @@ namespace GIBS.Module.TextMe.Repository
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<Models.TextMe>().ToTable(ActiveDatabase.RewriteName("GIBSTextMe"));
+            builder.Entity<Models.TextMessage>().ToTable(ActiveDatabase.RewriteName("GIBSTextMe_Messages"));
+            builder.Entity<Models.TextMedia>().ToTable(ActiveDatabase.RewriteName("GIBSTextMe_Media"));
+
+            builder.Entity<Models.TextMedia>()
+                .HasOne(item => item.Message)
+                .WithMany(item => item.MediaItems)
+                .HasForeignKey(item => item.MessageId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

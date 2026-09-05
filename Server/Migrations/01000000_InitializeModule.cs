@@ -17,14 +17,28 @@ namespace GIBS.Module.TextMe.Migrations
 
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            var entityBuilder = new TextMeEntityBuilder(migrationBuilder, ActiveDatabase);
-            entityBuilder.Create();
+            var textMessageEntityBuilder = new TextMessageEntityBuilder(migrationBuilder, ActiveDatabase);
+            textMessageEntityBuilder.Create();
+            migrationBuilder.CreateIndex(
+                name: ActiveDatabase.RewriteName("IX_GIBSTextMe_Messages_ModuleId"),
+                table: ActiveDatabase.RewriteName("GIBSTextMe_Messages"),
+                column: ActiveDatabase.RewriteName("ModuleId"));
+
+            var textMediaEntityBuilder = new TextMediaEntityBuilder(migrationBuilder, ActiveDatabase);
+            textMediaEntityBuilder.Create();
+            migrationBuilder.CreateIndex(
+                name: ActiveDatabase.RewriteName("IX_GIBSTextMe_Media_MessageId"),
+                table: ActiveDatabase.RewriteName("GIBSTextMe_Media"),
+                column: ActiveDatabase.RewriteName("MessageId"));
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            var entityBuilder = new TextMeEntityBuilder(migrationBuilder, ActiveDatabase);
-            entityBuilder.Drop();
+            var textMediaEntityBuilder = new TextMediaEntityBuilder(migrationBuilder, ActiveDatabase);
+            textMediaEntityBuilder.Drop();
+
+            var textMessageEntityBuilder = new TextMessageEntityBuilder(migrationBuilder, ActiveDatabase);
+            textMessageEntityBuilder.Drop();
         }
     }
 }

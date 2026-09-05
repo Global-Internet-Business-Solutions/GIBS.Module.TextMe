@@ -3,28 +3,148 @@
 @implements Oqtane.Interfaces.ISettingsControl
 @inject ISettingService SettingService
 @inject IStringLocalizer<Settings> Localizer
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
 
 <div class="container">
     <div class="row mb-1 align-items-center">
-        <Label Class="col-sm-3" For="value" HelpText="Enter a value" ResourceKey="SettingName" ResourceType="@resourceType">Name: </Label>
-            <div class="col-sm-9">
-                <input id="value" type="text" class="form-control" @bind="@_value" />
+        <Label Class="col-sm-3" For="accountsid" HelpText="Twilio Account SID" ResourceType="@resourceType">Account SID:</Label>
+        <div class="col-sm-9">
+            <input id="accountsid" type="text" class="form-control" @bind="@_accountSid" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="authtoken" HelpText="Twilio Auth Token" ResourceType="@resourceType">Auth Token:</Label>
+        <div class="col-sm-9">
+            <input id="authtoken" type="password" class="form-control" @bind="@_authToken" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="twiliophone" HelpText="Twilio Sender Number" ResourceType="@resourceType">Twilio Phone Number:</Label>
+        <div class="col-sm-9">
+            <input id="twiliophone" type="text" class="form-control" @bind="@_twilioPhoneNumber" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="sendtophone" HelpText="Default recipient phone number for outbound messages" ResourceType="@resourceType">Send To Phone Number:</Label>
+        <div class="col-sm-9">
+            <input id="sendtophone" type="text" class="form-control" @bind="@_sendToPhoneNumber" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="publicwebhookbaseurl" HelpText="Optional public base URL used for Twilio signature fallback behind reverse proxies" ResourceType="@resourceType">Public Webhook Base URL:</Label>
+        <div class="col-sm-9">
+            <input id="publicwebhookbaseurl" type="text" class="form-control" @bind="@_publicWebhookBaseUrl" placeholder="https://your-public-host" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="webhookurl" HelpText="Use this URL in Twilio: A Message Comes In -> Webhook (HTTP POST)" ResourceType="@resourceType">Generated Webhook URL:</Label>
+        <div class="col-sm-9">
+            <div class="input-group">
+                <input id="webhookurl" type="text" class="form-control" value="@_webhookUrl" readonly />
+                <button class="btn btn-secondary" type="button" @onclick="CopyWebhookUrl" disabled="@_isCopying">
+                    @(_isCopying ? "Copied!" : "Copy")
+                </button>
+                <button class="btn btn-primary" type="button" @onclick="TestWebhook" disabled="@_isTesting">
+                    @(_isTesting ? "Testing..." : "Test")
+                </button>
+                <button class="btn btn-info" type="button" @onclick="PingWebhook" disabled="@_isPinging">
+                    @(_isPinging ? "Pinging..." : "Ping")
+                </button>
             </div>
+            <small class="text-muted">Twilio setting: A Message Comes In = Webhook, Method = HTTP POST</small>
+            @if (!string.IsNullOrWhiteSpace(_testResult))
+            {
+                <div class="alert @(_testSuccess ? "alert-success" : "alert-warning") py-1 px-2 mt-2">@_testResult</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_pingResult))
+            {
+                <div class="alert @(_pingSuccess ? "alert-success" : "alert-danger") py-1 px-2 mt-2">
+                    <strong>@(_pingSuccess ? "✓" : "✗") Connectivity Test:</strong> @_pingResult
+                </div>
+            }
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-sm-12">
+            <div class="alert alert-info py-2 px-3">
+                <strong>Troubleshooting Twilio Error 11200:</strong>
+                <ul class="mb-0 mt-1">
+                    <li>Click <strong>Ping</strong> to verify the webhook endpoint is publicly accessible</li>
+                    <li>Ensure your site uses <strong>HTTPS</strong> with a valid SSL certificate</li>
+                    <li>If behind a reverse proxy, set the <strong>Public Webhook Base URL</strong> above</li>
+                    <li>Check firewall rules allow Twilio's IP addresses</li>
+                    <li>Verify no authentication is required at the network edge (WAF, load balancer)</li>
+                    <li>Response time should be under 15 seconds</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="isactive" HelpText="Enable or disable this module configuration" ResourceType="@resourceType">Is Active:</Label>
+        <div class="col-sm-9">
+            <input id="isactive" type="checkbox" class="form-check-input" @bind="@_isActive" />
+        </div>
+    </div>
+    <div class="row mb-1 align-items-center">
+        <Label Class="col-sm-3" For="debugmode" HelpText="Enable debug endpoint and verbose logging for troubleshooting" ResourceType="@resourceType">Debug Mode:</Label>
+        <div class="col-sm-9">
+            <input id="debugmode" type="checkbox" class="form-check-input" @bind="@_debugMode" />
+            <small class="form-text text-muted d-block mt-1">
+                When enabled: Debug endpoint available at /api/TextMe/webhook/{moduleId}/debug and verbose logging active
+            </small>
+        </div>
     </div>
 </div>
 
 @code {
-    private string resourceType = "GIBS.Module.TextMe.Settings, GIBS.Module.TextMe.Client.Oqtane"; // for localization
+    private const string AccountSidSettingName = "TwilioAccountSid";
+    private const string AuthTokenSettingName = "TwilioAuthToken";
+    private const string PhoneNumberSettingName = "TwilioPhoneNumber";
+    private const string SendToPhoneNumberSettingName = "SendToPhoneNumber";
+    private const string PublicWebhookBaseUrlSettingName = "TwilioWebhookPublicBaseUrl";
+    private const string IsActiveSettingName = "TwilioIsActive";
+    private const string DebugModeSettingName = "TwilioDebugMode";
+
+    private string resourceType = "GIBS.Module.TextMe.Settings, GIBS.Module.TextMe.Client.Oqtane";
     public override string Title => "TextMe Settings";
 
-    string _value;
+    private string _accountSid;
+    private string _authToken;
+    private string _twilioPhoneNumber;
+    private string _sendToPhoneNumber;
+    private string _publicWebhookBaseUrl;
+    private string _webhookUrl;
+    private bool _isActive = true;
+    private bool _debugMode;
+    private bool _isTesting;
+    private bool _isCopying;
+    private bool _isPinging;
+    private bool _testSuccess;
+    private bool _pingSuccess;
+    private string _testResult;
+    private string _pingResult;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             Dictionary<string, string> settings = await SettingService.GetModuleSettingsAsync(ModuleState.ModuleId);
-            _value = SettingService.GetSetting(settings, "SettingName", "");
+            _accountSid = SettingService.GetSetting(settings, AccountSidSettingName, "");
+            _authToken = SettingService.GetSetting(settings, AuthTokenSettingName, "");
+            _twilioPhoneNumber = SettingService.GetSetting(settings, PhoneNumberSettingName, "");
+            _sendToPhoneNumber = SettingService.GetSetting(settings, SendToPhoneNumberSettingName, "");
+            _publicWebhookBaseUrl = SettingService.GetSetting(settings, PublicWebhookBaseUrlSettingName, "");
+            _webhookUrl = BuildWebhookUrl();
+            if (!bool.TryParse(SettingService.GetSetting(settings, IsActiveSettingName, bool.TrueString), out _isActive))
+            {
+                _isActive = true;
+            }
+            if (!bool.TryParse(SettingService.GetSetting(settings, DebugModeSettingName, bool.FalseString), out _debugMode))
+            {
+                _debugMode = false;
+            }
         }
         catch (Exception ex)
         {
@@ -37,12 +157,137 @@
         try
         {
             var settings = await SettingService.GetModuleSettingsAsync(ModuleState.ModuleId);
-            settings = SettingService.SetSetting(settings, "SettingName", _value);
+            settings = SettingService.SetSetting(settings, AccountSidSettingName, _accountSid);
+            settings = SettingService.SetSetting(settings, AuthTokenSettingName, _authToken);
+            settings = SettingService.SetSetting(settings, PhoneNumberSettingName, _twilioPhoneNumber);
+            settings = SettingService.SetSetting(settings, SendToPhoneNumberSettingName, _sendToPhoneNumber);
+            settings = SettingService.SetSetting(settings, PublicWebhookBaseUrlSettingName, _publicWebhookBaseUrl);
+            settings = SettingService.SetSetting(settings, IsActiveSettingName, _isActive.ToString());
+            settings = SettingService.SetSetting(settings, DebugModeSettingName, _debugMode.ToString());
             await SettingService.UpdateModuleSettingsAsync(settings, ModuleState.ModuleId);
+            _webhookUrl = BuildWebhookUrl();
         }
         catch (Exception ex)
         {
             AddModuleMessage(ex.Message, MessageType.Error);
+        }
+    }
+
+    private string BuildWebhookUrl()
+    {
+        var baseUrl = string.IsNullOrWhiteSpace(_publicWebhookBaseUrl)
+            ? NavigationManager.BaseUri.TrimEnd('/')
+            : _publicWebhookBaseUrl.TrimEnd('/');
+
+        return $"{baseUrl}/api/TextMe/webhook/{ModuleState.ModuleId}";
+    }
+
+    private async Task CopyWebhookUrl()
+    {
+        try
+        {
+            _isCopying = true;
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _webhookUrl);
+            await Task.Delay(1500);
+        }
+        catch
+        {
+            AddModuleMessage("Failed to copy to clipboard", MessageType.Warning);
+        }
+        finally
+        {
+            _isCopying = false;
+        }
+    }
+
+    private async Task PingWebhook()
+    {
+        _isPinging = true;
+        _pingResult = string.Empty;
+        _pingSuccess = false;
+
+        try
+        {
+            var pingUrl = $"{_webhookUrl}/ping";
+            var response = await Http.GetAsync(pingUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _pingSuccess = true;
+                var content = await response.Content.ReadAsStringAsync();
+                _pingResult = $"Endpoint is publicly accessible! Status: {(int)response.StatusCode} OK. Twilio should be able to reach this URL.";
+            }
+            else
+            {
+                _pingSuccess = false;
+                _pingResult = $"Endpoint returned HTTP {(int)response.StatusCode}. This may indicate a configuration issue.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _pingSuccess = false;
+            _pingResult = $"Cannot reach endpoint: {ex.Message}. Ensure the site is publicly accessible and using HTTPS.";
+        }
+        catch (Exception ex)
+        {
+            _pingSuccess = false;
+            _pingResult = $"Error testing connectivity: {ex.Message}";
+        }
+        finally
+        {
+            _isPinging = false;
+        }
+    }
+
+    private async Task TestWebhook()
+    {
+        _isTesting = true;
+        _testResult = string.Empty;
+        _testSuccess = false;
+
+        try
+        {
+            // Create mock Twilio webhook data
+            var formData = new Dictionary<string, string>
+            {
+                { "MessageSid", "TEST_MESSAGE_SID" },
+                { "From", "+15555551234" },
+                { "To", _twilioPhoneNumber ?? "+15555554321" },
+                { "Body", "Test webhook message" }
+            };
+
+            var content = new FormUrlEncodedContent(formData);
+            var response = await Http.PostAsync($"api/TextMe/webhook/{ModuleState.ModuleId}", content);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _testSuccess = true;
+                _testResult = "✓ Webhook endpoint is reachable! (Signature validation working as expected)";
+            }
+            else if (response.IsSuccessStatusCode)
+            {
+                _testSuccess = true;
+                _testResult = "✓ Webhook endpoint is reachable and responding!";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                _testSuccess = true;
+                _testResult = "✓ Webhook endpoint is reachable! (Invalid test data, but endpoint exists)";
+            }
+            else
+            {
+                _testSuccess = false;
+                _testResult = $"⚠ Webhook returned HTTP {(int)response.StatusCode}. Check server logs.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _testSuccess = false;
+            _testResult = $"✗ Failed to reach webhook: {ex.Message}";
+        }
+        finally
+        {
+            _isTesting = false;
         }
     }
 }

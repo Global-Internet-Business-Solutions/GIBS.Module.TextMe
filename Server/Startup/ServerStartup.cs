@@ -21,7 +21,9 @@ namespace GIBS.Module.TextMe.Startup
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<ITextMeService, ServerTextMeService>();
+            services.AddTransient<ITextMessageService, TextMessageService>();
+            services.AddTransient<ITextMessageRepository, TextMessageRepository>();
+            services.AddTransient<ITwilioRequestValidationService, TwilioRequestValidationService>();
             services.AddDbContextFactory<TextMeContext>(opt => { }, ServiceLifetime.Transient);
         }
     }

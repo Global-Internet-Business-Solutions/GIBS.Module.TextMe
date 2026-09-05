@@ -1,112 +1,98 @@
-@using Oqtane.Modules.Controls
-@using GIBS.Module.TextMe.Services
+@using System.Net.Http.Json
 @using GIBS.Module.TextMe.Models
-
 @namespace GIBS.Module.TextMe
 @inherits ModuleBase
-@inject ITextMeService ClientTextMeService
-@inject NavigationManager NavigationManager
-@inject IStringLocalizer<Edit> Localizer
+@inject HttpClient Http
 
-<form @ref="form" class="@(validated ? " was-validated" : "needs-validation" )" novalidate>
-    <div class="container">
-        <div class="row mb-1 align-items-center">
-            <Label Class="col-sm-3" For="name" HelpText="Enter a name" ResourceKey="Name">Name: </Label>
-            <div class="col-sm-9">
-                <input id="name" class="form-control" @bind="@_name" required />
-            </div>
-        </div>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Messages</h5>
+        <button class="btn btn-secondary btn-sm" @onclick="LoadMessages">Refresh</button>
     </div>
-    <button type="button" class="btn btn-success" @onclick="Save">@Localizer["Save"]</button>
-    <NavLink class="btn btn-secondary" href="@NavigateUrl()">@Localizer["Cancel"]</NavLink>
-    <br /><br />
-    @if (PageState.Action == "Edit")
+
+    @if (!string.IsNullOrWhiteSpace(_status))
     {
-    <AuditInfo CreatedBy="@_createdby" CreatedOn="@_createdon" ModifiedBy="@_modifiedby" ModifiedOn="@_modifiedon"></AuditInfo>
+        <div class="alert alert-info py-1 px-2">@_status</div>
     }
-</form>
+
+    @if (_isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (_messages.Count == 0)
+    {
+        <p>No messages found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Direction</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Status</th>
+                        <th>Message</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _messages.OrderByDescending(x => x.CreatedOn))
+                    {
+                        <tr>
+                            <td>@item.MessageId</td>
+                            <td>@item.Direction</td>
+                            <td>@item.SenderNumber</td>
+                            <td>@item.RecipientNumber</td>
+                            <td>@item.Status</td>
+                            <td>@item.Body</td>
+                            <td>@item.CreatedOn.ToLocalTime()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
 @code {
     public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Edit;
-
-    public override string Actions => "Add,Edit";
-
-    public override string Title => "Manage TextMe";
+    public override string Actions => "Edit";
+    public override string Title => "Manage Text Messages";
 
     public override List<Resource> Resources => new List<Resource>()
     {
         new Stylesheet("_content/GIBS.Module.TextMe/Module.css")
     };
 
-    private ElementReference form;
-    private bool validated = false;
-
-    private int _id;
-    private string _name;
-    private string _createdby;
-    private DateTime _createdon;
-    private string _modifiedby;
-    private DateTime _modifiedon;
+    private bool _isLoading;
+    private string _status;
+    private List<ChatMessageDto> _messages = new();
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            if (PageState.Action == "Edit")
-            {
-                _id = Int32.Parse(PageState.QueryString["id"]);
-                TextMe TextMe = await ClientTextMeService.GetTextMeAsync(_id, ModuleState.ModuleId);
-                if (TextMe != null)
-                {
-                    _name = TextMe.Name;
-                    _createdby = TextMe.CreatedBy;
-                    _createdon = TextMe.CreatedOn;
-                    _modifiedby = TextMe.ModifiedBy;
-                    _modifiedon = TextMe.ModifiedOn;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            await logger.LogError(ex, "Error Loading TextMe {TextMeId} {Error}", _id, ex.Message);
-            AddModuleMessage(Localizer["Message.LoadError"], MessageType.Error);
-        }
+        await LoadMessages();
     }
 
-    private async Task Save()
+    private async Task LoadMessages()
     {
+        _isLoading = true;
+        _status = string.Empty;
+
         try
         {
-            validated = true;
-            var interop = new Oqtane.UI.Interop(JSRuntime);
-            if (await interop.FormValid(form))
-            {
-                if (PageState.Action == "Add")
-                {
-                    TextMe TextMe = new TextMe();
-                    TextMe.ModuleId = ModuleState.ModuleId;
-                    TextMe.Name = _name;
-                    TextMe = await ClientTextMeService.AddTextMeAsync(TextMe);
-                    await logger.LogInformation("TextMe Added {TextMe}", TextMe);
-                }
-                else
-                {
-                    TextMe TextMe = await ClientTextMeService.GetTextMeAsync(_id, ModuleState.ModuleId);
-                    TextMe.Name = _name;
-                    await ClientTextMeService.UpdateTextMeAsync(TextMe);
-                    await logger.LogInformation("TextMe Updated {TextMe}", TextMe);
-                }
-                NavigationManager.NavigateTo(NavigateUrl());
-            }
-            else
-            {
-                AddModuleMessage(Localizer["Message.SaveValidation"], MessageType.Warning);
-            }
+            _messages = await Http.GetFromJsonAsync<List<ChatMessageDto>>($"api/TextMe/messages/{ModuleState.ModuleId}") ?? new List<ChatMessageDto>();
         }
         catch (Exception ex)
         {
-            await logger.LogError(ex, "Error Saving TextMe {Error}", ex.Message);
-            AddModuleMessage(Localizer["Message.SaveError"], MessageType.Error);
+            _messages = new List<ChatMessageDto>();
+            _status = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 }
