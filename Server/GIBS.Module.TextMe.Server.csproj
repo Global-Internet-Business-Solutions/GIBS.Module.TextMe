@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Product>GIBS.Module.TextMe</Product>
     <Authors>Joseph M Aucoin</Authors>
     <Company>GIBS</Company>
@@ -20,10 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="11.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Twilio.AspNet.Core" Version="8.1.2" />
   </ItemGroup>
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Oqtane.Server"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net10.0\Oqtane.Server.dll</HintPath></Reference>
-    <Reference Include="Oqtane.Shared"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net10.0\Oqtane.Shared.dll</HintPath></Reference>
+    <Reference Include="Oqtane.Server"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net11.0\Oqtane.Server.dll</HintPath></Reference>
+    <Reference Include="Oqtane.Shared"><HintPath>..\..\oqtane.framework\Oqtane.Server\bin\Debug\net11.0\Oqtane.Shared.dll</HintPath></Reference>
   </ItemGroup>
 </Project>

@@ -9,9 +9,9 @@ namespace GIBS.Module.TextMe
         {
             Name = "TextMe",
             Description = "Twilio TextMe Module for Oqtane",
-            Version = "1.0.2",
+            Version = "1.0.3",
             ServerManagerType = "GIBS.Module.TextMe.Manager.TextMeManager, GIBS.Module.TextMe.Server.Oqtane",
-            ReleaseVersions = "1.0.0,1.0.1,1.0.2",
+            ReleaseVersions = "1.0.0,1.0.1,1.0.2,1.0.3",
             Dependencies = "GIBS.Module.TextMe.Shared.Oqtane",
             PackageName = "GIBS.Module.TextMe" 
         };
